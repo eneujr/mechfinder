@@ -1,0 +1,13 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
+email_validator
+reportlab
+Werkzeug
+Pillow
+torch
+torchvision
+numpy
+scikit-learn
+gunicorn
