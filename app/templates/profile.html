@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Meu Perfil - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm text-center">
+            <div class="card-body">
+                <div class="mb-3">
+                    <i class="fas fa-user-circle fa-5x text-secondary"></i>
+                </div>
+                <h4>{{ user.username }}</h4>
+                <p class="text-muted">{{ user.email }}</p>
+                <span class="badge bg-primary mb-3">{{ user.user_type|title }}</span>
+
+                <hr>
+
+                <div class="text-start">
+                    <p><i class="fas fa-phone me-2"></i> {{ user.phone or 'Não informado' }}</p>
+                    <p><i class="fas fa-calendar me-2"></i> Membro desde {{ user.created_at.strftime('%d/%m/%Y') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        {% if user.user_type in ['lojista', 'prestador'] %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Minhas Lojas</h5>
+                <a href="{{ url_for('stores.nova_loja') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-plus"></i> Nova Loja
+                </a>
+            </div>
+            <div class="card-body">
+                {% if stores %}
+                {% for store in stores %}
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <h6 class="mb-0">{{ store.name }}</h6>
+                        <small class="text-muted">{{ store.category }}</small>
+                    </div>
+                    <a href="{{ url_for('stores.editar_loja', store_id=store.id) }}"
+                        class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted">Nenhuma loja cadastrada.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Meus Produtos/Serviços</h5>
+                <div>
+                    <a href="{{ url_for('products.cadastro_produto') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus"></i> Produto
+                    </a>
+                    <a href="{{ url_for('products.cadastro_servico') }}" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-plus"></i> Serviço
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if products %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Tipo</th>
+                                <th>Preço</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>
+                                    <span
+                                        class="badge {% if product.type == 'product' %}bg-primary{% else %}bg-success{% endif %}">
+                                        {{ 'Produto' if product.type == 'product' else 'Serviço' }}
+                                    </span>
+                                </td>
+                                <td>R$ {{ "%.2f"|format(product.price) }}</td>
+                                <td>
+                                    <span
+                                        class="badge {% if product.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ 'Ativo' if product.is_active else 'Inativo' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('products.product_detail', product_id=product.id) }}"
+                                            class="btn btn-sm btn-outline-info" title="Ver Detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if product.type == 'product' %}
+                                        <a href="{{ url_for('products.editar_produto', product_id=product.id) }}"
+                                            class="btn btn-sm btn-outline-warning" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% else %}
+                                        <a href="{{ url_for('products.editar_servico', product_id=product.id) }}"
+                                            class="btn btn-sm btn-outline-warning" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                        <form
+                                            action="{{ url_for('products.desativar_produto', product_id=product.id) }}"
+                                            method="POST" style="display: inline;">
+                                            <button type="submit"
+                                                class="btn btn-sm {% if product.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                                                title="{% if product.is_active %}Desativar{% else %}Ativar{% endif %}"
+                                                onclick="return confirm('Tem certeza que deseja {% if product.is_active %}desativar{% else %}ativar{% endif %} este item?')">
+                                                <i
+                                                    class="fas {% if product.is_active %}fa-ban{% else %}fa-check{% endif %}"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Nenhum produto ou serviço cadastrado.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Últimas Compras</h5>
+            </div>
+            <div class="card-body">
+                {% if compras_cliente %}
+                <div class="list-group list-group-flush">
+                    {% for compra in compras_cliente %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ compra.product.name }}</h6>
+                            <small class="text-muted">{{ compra.created_at.strftime('%d/%m/%Y') }}</small>
+                        </div>
+                        <p class="mb-1">R$ {{ "%.2f"|format(compra.total_price) }}</p>
+                        <a href="{{ url_for('products.product_detail', product_id=compra.product_id) }}"
+                            class="btn btn-sm btn-link px-0">Ver Produto</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('main.historico_compras') }}" class="btn btn-outline-primary">Ver Histórico
+                        Completo</a>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">Você ainda não realizou nenhuma compra.</p>
+                <div class="text-center">
+                    <a href="{{ url_for('main.search') }}" class="btn btn-primary">Começar a Comprar</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

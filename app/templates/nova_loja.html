@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Loja - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-store me-2"></i>Cadastrar Nova Loja</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('stores.nova_loja') }}" method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="nome" class="form-label">Nome da Loja *</label>
+                                <input type="text" class="form-control" id="nome" name="nome" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="categoria" class="form-label">Categoria *</label>
+                                <select class="form-select" id="categoria" name="categoria" required>
+                                    <option value="">Selecione uma categoria</option>
+                                    <option value="autopecas">Auto Peças</option>
+                                    <option value="mecanica">Mecânica</option>
+                                    <option value="funilaria">Funilaria</option>
+                                    <option value="eletrica">Elétrica Automotiva</option>
+                                    <option value="estetica">Estética Automotiva</option>
+                                    <option value="pneus">Pneus e Rodas</option>
+                                    <option value="geral">Geral</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="telefone" class="form-label">Telefone *</label>
+                                <input type="tel" class="form-control" id="telefone" name="telefone"
+                                    placeholder="(00) 00000-0000" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="whatsapp" class="form-label">WhatsApp</label>
+                                <input type="tel" class="form-control" id="whatsapp" name="whatsapp"
+                                    placeholder="(00) 00000-0000">
+                                <div class="form-text">Usado para contato direto com clientes</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">E-mail</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                    placeholder="loja@exemplo.com">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cep" class="form-label">CEP *</label>
+                                <input type="text" class="form-control" id="cep" name="cep" placeholder="00000-000"
+                                    required>
+                                <div class="form-text">Digite o CEP para buscar o endereço automaticamente</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="endereco" class="form-label">Endereço *</label>
+                                <input type="text" class="form-control" id="endereco" name="endereco"
+                                    placeholder="Rua, Avenida..." required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="numero" class="form-label">Número *</label>
+                                <input type="text" class="form-control" id="numero" name="numero" placeholder="123"
+                                    required>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="latitude" class="form-label">Latitude</label>
+                                        <input type="number" step="any" class="form-control" id="latitude"
+                                            name="latitude" placeholder="-23.550520" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="longitude" class="form-label">Longitude</label>
+                                        <input type="number" step="any" class="form-control" id="longitude"
+                                            name="longitude" placeholder="-46.633308" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text mb-3">
+                                <i class="fas fa-info-circle"></i> As coordenadas são preenchidas automaticamente ao
+                                buscar o CEP
+                            </div>
+
+                            <!-- Mapa -->
+                            <div class="mb-3">
+                                <label class="form-label">Localização no Mapa</label>
+                                <div id="map" style="height: 300px; border-radius: 8px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('main.profile') }}" class="btn btn-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Cadastrar Loja</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Inicializar mapa
+    let map;
+    let marker;
+    const defaultLat = -23.550520;
+    const defaultLng = -46.633308;
+
+    function initMap() {
+        map = L.map('map').setView([defaultLat, defaultLng], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        marker = L.marker([defaultLat, defaultLng], {draggable: true}).addTo(map);
+        
+        marker.on('dragend', function(e) {
+            const position = marker.getLatLng();
+            document.getElementById('latitude').value = position.lat.toFixed(6);
+            document.getElementById('longitude').value = position.lng.toFixed(6);
+        });
+    }
+
+    // Buscar CEP
+    document.getElementById('cep').addEventListener('blur', function() {
+        const cep = this.value.replace(/\D/g, '');
+        if (cep.length === 8) {
+            fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.erro) {
+                        document.getElementById('endereco').value = data.logradouro;
+                        
+                        // Geocodificar endereço
+                        const endereco = `${data.logradouro}, ${data.localidade}, ${data.uf}, Brasil`;
+                        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`)
+                            .then(response => response.json())
+                            .then(geoData => {
+                                if (geoData.length > 0) {
+                                    const lat = parseFloat(geoData[0].lat);
+                                    const lng = parseFloat(geoData[0].lon);
+                                    
+                                    document.getElementById('latitude').value = lat.toFixed(6);
+                                    document.getElementById('longitude').value = lng.toFixed(6);
+                                    
+                                    map.setView([lat, lng], 15);
+                                    marker.setLatLng([lat, lng]);
+                                }
+                            });
+                    }
+                })
+                .catch(error => console.error('Erro ao buscar CEP:', error));
+        }
+    });
+
+    // Máscara de CEP
+    document.getElementById('cep').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 5) {
+            value = value.substring(0, 5) + '-' + value.substring(5, 8);
+        }
+        e.target.value = value;
+    });
+
+    // Inicializar mapa quando a página carregar
+    window.addEventListener('load', initMap);
+</script>
+{% endblock %}

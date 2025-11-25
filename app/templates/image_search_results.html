@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Resultados da Busca por Imagem - MechFinder{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-search me-2"></i>Resultados da Busca por Imagem
+            </h2>
+            <p class="text-muted">
+                ✨ Encontramos {{ results|length }} produto(s) com alta similaridade (mínimo 65%)
+            </p>
+            <a href="{{ url_for('image_search.index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-camera me-2"></i>Nova Busca por Imagem
+            </a>
+            <a href="{{ url_for('main.search') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-search me-2"></i>Busca Normal
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for product, similarity in results %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm product-card" data-product-id="{{ product.id }}"
+                data-similarity="{{ similarity }}">
+                <!-- Badge de similaridade -->
+                <div class="position-absolute top-0 end-0 m-2">
+                    <span
+                        class="badge {% if similarity >= 0.8 %}bg-success{% elif similarity >= 0.7 %}bg-primary{% else %}bg-info{% endif %} fs-6">
+                        <i class="fas fa-check-circle me-1"></i>{{ (similarity * 100)|int }}% similar
+                    </span>
+                </div>
+
+                <!-- Imagem do produto -->
+                {% if product.image_file and product.image_file != 'default_product.jpg' %}
+                <img src="{{ url_for('static', filename='uploads/' + product.image_file) }}" class="card-img-top"
+                    alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center"
+                    style="height: 200px;">
+                    <i class="fas fa-image fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name }}</h5>
+
+                    <p class="text-muted small mb-2">
+                        <i class="fas fa-tag me-1"></i>{{ product.category }}
+                    </p>
+
+                    <p class="card-text text-truncate" style="max-height: 60px;">
+                        {{ product.description }}
+                    </p>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <h4 class="text-primary mb-0">
+                            R$ {{ "%.2f"|format(product.price) }}
+                        </h4>
+                        <div class="text-warning">
+                            <i class="fas fa-star"></i> {{ product.rating }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-white border-top-0">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('products.product_detail', product_id=product.id) }}"
+                            class="btn btn-primary view-details-btn">
+                            <i class="fas fa-eye me-2"></i>Ver Detalhes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Informações sobre a busca -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle me-2"></i>Como interpretamos os resultados</h5>
+                <ul class="mb-0">
+                    <li><strong class="text-success">80-100% similar:</strong> Produto muito parecido ou idêntico - Alta
+                        confiança</li>
+                    <li><strong class="text-primary">70-79% similar:</strong> Produto com características muito
+                        semelhantes</li>
+                    <li><strong class="text-info">65-69% similar:</strong> Produto com boa semelhança</li>
+                </ul>
+                <p class="mt-2 mb-0"><i class="fas fa-brain me-2"></i><strong>Sistema Inteligente:</strong> Mostramos
+                    apenas produtos com alta precisão (mínimo 65%). Quanto mais você usa, melhor fica!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dicas para refinar busca -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Não encontrou o que procura?</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Tente:</strong></p>
+                    <ul>
+                        <li>Tirar outra foto com melhor iluminação ou ângulo diferente</li>
+                        <li>Usar uma imagem com melhor qualidade e foco</li>
+                        <li>Fotografar mais de perto o produto</li>
+                        <li>Usar a <a href="{{ url_for('main.search') }}">busca por texto</a> com palavras-chave</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Rastrear quando usuário clica para ver detalhes (sistema de aprendizado)
+    document.querySelectorAll('.view-details-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            const card = this.closest('.product-card');
+            const productId = card.dataset.productId;
+            const similarity = parseFloat(card.dataset.similarity);
+
+            // Enviar informação para o backend (aprendizado)
+            fetch('{{ url_for("image_search.record_selection") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    search_id: {{ search_id }},
+                product_id: productId,
+                similarity: similarity
+            })
+    }).catch(error => console.log('Erro ao registrar seleção:', error));
+    });
+});
+</script>
+{% endblock %}

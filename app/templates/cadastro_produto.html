@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastro de Produto - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-box me-2"></i>Novo Produto</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('products.cadastro_produto') }}" method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="nome" class="form-label">Nome do Produto *</label>
+                                <input type="text" class="form-control" id="nome" name="nome" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="categoria" class="form-label">Categoria *</label>
+                                <select class="form-select" id="categoria" name="categoria" required>
+                                    <option value="">Selecione uma categoria</option>
+                                    <option value="freios">Freios</option>
+                                    <option value="lubrificantes">Lubrificantes</option>
+                                    <option value="pneus">Pneus</option>
+                                    <option value="motor">Motor</option>
+                                    <option value="suspensao">Suspensão</option>
+                                    <option value="eletrica">Elétrica</option>
+                                    <option value="acessorios">Acessórios</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="marca" class="form-label">Marca *</label>
+                                <input type="text" class="form-control" id="marca" name="marca"
+                                    placeholder="Ex: Bosch, Mobil, Goodyear" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="preco" class="form-label">Preço (R$) *</label>
+                                <input type="number" class="form-control" id="preco" name="preco" step="0.01" min="0"
+                                    placeholder="0.00" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="imagem" class="form-label">Imagem do Produto</label>
+                                <input type="file" class="form-control" id="imagem" name="imagem" accept="image/*">
+                                <div class="form-text">Formatos aceitos: JPG, PNG, JPEG. Máx: 5MB.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="garantia" class="form-label">Garantia</label>
+                                <input type="text" class="form-control" id="garantia" name="garantia"
+                                    placeholder="Ex: 12 meses">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="ano_fabricacao" class="form-label">Ano de Fabricação/Compatibilidade</label>
+                                <input type="text" class="form-control" id="ano_fabricacao" name="ano_fabricacao"
+                                    placeholder="Ex: 2020-2024">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="compatibilidade" class="form-label">Compatibilidade com Veículos</label>
+                                <input type="text" class="form-control" id="compatibilidade" name="compatibilidade"
+                                    placeholder="Ex: Gol, Fox, Onix, Ka">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="especificacoes" class="form-label">Especificações Técnicas</label>
+                                <textarea class="form-control" id="especificacoes" name="especificacoes" rows="3"
+                                    placeholder="Detalhes técnicos do produto..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição do Produto *</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="3"
+                            placeholder="Descreva detalhadamente o produto..." required></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('main.profile') }}" class="btn btn-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Cadastrar Produto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('imagem').addEventListener('change', function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                let preview = document.getElementById('imagePreview');
+                if (!preview) {
+                    preview = document.createElement('img');
+                    preview.id = 'imagePreview';
+                    preview.className = 'img-fluid mt-2 rounded';
+                    preview.style.maxHeight = '200px';
+                    // Insert after the file input's parent div (the .mb-3 div)
+                    event.target.parentNode.appendChild(preview);
+                }
+                preview.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}

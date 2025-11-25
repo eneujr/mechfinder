@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Minhas Vendas - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2><i class="fas fa-chart-line me-2"></i>Minhas Vendas</h2>
+        <button class="btn btn-primary" onclick="gerarPDFVendas()">
+            <i class="fas fa-file-pdf me-2"></i>Gerar Relatório
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5>Total de Vendas</h5>
+                <h3>{{ total_vendas }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5>Faturamento Total</h5>
+                <h3>R$ {{ "%.2f"|format(faturamento_total) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5>Ticket Médio</h5>
+                <h3>R$ {{ "%.2f"|format(faturamento_total / total_vendas if total_vendas > 0 else 0) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+{% if total_vendas > 0 %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Vendas por Período</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="vendasPorPeriodoChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Produtos Mais Vendidos</h5>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; height: 300px;">
+                    <canvas id="produtosMaisVendidosChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    Aguardando vendas para visualizar os gráficos de análise.
+</div>
+{% endif %}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Produto/Serviço</th>
+                        <th>Cliente</th>
+                        <th>Quantidade</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Avaliação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for venda in vendas %}
+                    <tr>
+                        <td>{{ venda.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ venda.product.name }}</td>
+                        <td>{{ venda.customer.username }}</td>
+                        <td>{{ venda.quantity }}</td>
+                        <td>R$ {{ "%.2f"|format(venda.total_price) }}</td>
+                        <td><span class="badge bg-success">Concluído</span></td>
+                        <td>
+                            {% if venda.rating %}
+                            <span class="text-warning"><i class="fas fa-star"></i> {{ venda.rating }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">Nenhuma venda registrada ainda.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Dados para os gráficos
+    const vendasData = {{ vendas_json| tojson | safe }};
+
+    console.log('Total de vendas:', vendasData.length);
+    console.log('Dados das vendas:', vendasData);
+
+    if (vendasData && vendasData.length > 0) {
+        // Processar dados por período (últimos 7 dias)
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0); // Zerar horas para comparação correta
+
+        const ultimosDias = [];
+        const vendasPorDia = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const data = new Date(hoje);
+            data.setDate(data.getDate() - i);
+            const dataStr = data.toLocaleDateString('pt-BR');
+            ultimosDias.push(dataStr.split('/').slice(0, 2).join('/'));
+
+            const vendasDoDia = vendasData.filter(v => {
+                const vendaData = new Date(v.created_at);
+                vendaData.setHours(0, 0, 0, 0);
+                return vendaData.getTime() === data.getTime();
+            });
+
+            const totalDia = vendasDoDia.reduce((sum, v) => sum + v.total_price, 0);
+            vendasPorDia.push(totalDia);
+
+            console.log(`Dia ${dataStr}: R$ ${totalDia.toFixed(2)} (${vendasDoDia.length} vendas)`);
+        }
+
+        console.log('Labels:', ultimosDias);
+        console.log('Valores:', vendasPorDia);
+
+        // Gráfico de Vendas por Período
+        const ctxPeriodo = document.getElementById('vendasPorPeriodoChart');
+        if (ctxPeriodo) {
+            const chartPeriodo = new Chart(ctxPeriodo, {
+                type: 'line',
+                data: {
+                    labels: ultimosDias,
+                    datasets: [{
+                        label: 'Faturamento (R$)',
+                        data: vendasPorDia,
+                        borderColor: '#0f9d58',
+                        backgroundColor: 'rgba(15, 157, 88, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return 'R$ ' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return 'R$ ' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Gráfico de período criado:', chartPeriodo);
+        } else {
+            console.error('Canvas vendasPorPeriodoChart não encontrado!');
+        }
+
+        // Processar produtos mais vendidos
+        const produtosMap = {};
+        vendasData.forEach(v => {
+            if (!produtosMap[v.product.name]) {
+                produtosMap[v.product.name] = 0;
+            }
+            produtosMap[v.product.name] += v.quantity;
+        });
+
+        const produtosOrdenados = Object.entries(produtosMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        const produtosNomes = produtosOrdenados.map(p => p[0]);
+        const produtosQuantidades = produtosOrdenados.map(p => p[1]);
+
+        console.log('Produtos:', produtosNomes);
+        console.log('Quantidades:', produtosQuantidades);
+
+        // Gráfico de Produtos Mais Vendidos
+        const ctxProdutos = document.getElementById('produtosMaisVendidosChart');
+        if (ctxProdutos) {
+            const chartProdutos = new Chart(ctxProdutos, {
+                type: 'doughnut',
+                data: {
+                    labels: produtosNomes,
+                    datasets: [{
+                        data: produtosQuantidades,
+                        backgroundColor: [
+                            '#1a73e8',
+                            '#0f9d58',
+                            '#f4b400',
+                            '#db4437',
+                            '#ab47bc'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 10,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.label + ': ' + context.parsed + ' unidades';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Gráfico de produtos criado:', chartProdutos);
+        } else {
+            console.error('Canvas produtosMaisVendidosChart não encontrado!');
+        }
+    } else {
+        console.log('Nenhuma venda encontrada para gerar gráficos');
+    }
+</script>
+{% endblock %}

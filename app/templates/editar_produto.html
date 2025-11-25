@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Produto - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="fas fa-edit me-2"></i>Editar Produto</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('products.editar_produto', product_id=product.id) }}" method="POST"
+                    enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="nome" class="form-label">Nome do Produto *</label>
+                                <input type="text" class="form-control" id="nome" name="nome" value="{{ product.name }}"
+                                    required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="categoria" class="form-label">Categoria *</label>
+                                <select class="form-select" id="categoria" name="categoria" required>
+                                    <option value="">Selecione uma categoria</option>
+                                    <option value="freios" {% if product.category=='freios' %}selected{% endif %}>Freios
+                                    </option>
+                                    <option value="lubrificantes" {% if product.category=='lubrificantes' %}selected{%
+                                        endif %}>Lubrificantes</option>
+                                    <option value="pneus" {% if product.category=='pneus' %}selected{% endif %}>Pneus
+                                    </option>
+                                    <option value="motor" {% if product.category=='motor' %}selected{% endif %}>Motor
+                                    </option>
+                                    <option value="suspensao" {% if product.category=='suspensao' %}selected{% endif %}>
+                                        Suspensão</option>
+                                    <option value="eletrica" {% if product.category=='eletrica' %}selected{% endif %}>
+                                        Elétrica</option>
+                                    <option value="acessorios" {% if product.category=='acessorios' %}selected{% endif
+                                        %}>Acessórios</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="marca" class="form-label">Marca *</label>
+                                <input type="text" class="form-control" id="marca" name="marca"
+                                    value="{{ product.brand }}" placeholder="Ex: Bosch, Mobil, Goodyear" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="preco" class="form-label">Preço (R$) *</label>
+                                <input type="number" class="form-control" id="preco" name="preco" step="0.01" min="0"
+                                    value="{{ product.price }}" placeholder="0.00" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="imagem" class="form-label">Imagem do Produto</label>
+                                {% if product.image_file and product.image_file != 'default_product.jpg' %}
+                                <div class="mb-2">
+                                    <img src="{{ url_for('static', filename='uploads/' + product.image_file) }}"
+                                        alt="Imagem atual" class="img-fluid rounded" style="max-height: 150px;">
+                                    <p class="text-muted small mt-1">Imagem atual</p>
+                                </div>
+                                {% endif %}
+                                <input type="file" class="form-control" id="imagem" name="imagem" accept="image/*">
+                                <div class="form-text">Deixe em branco para manter a imagem atual. Formatos aceitos:
+                                    JPG, PNG, JPEG. Máx: 5MB.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="garantia" class="form-label">Garantia</label>
+                                <input type="text" class="form-control" id="garantia" name="garantia"
+                                    value="{{ product.warranty }}" placeholder="Ex: 12 meses">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="ano_fabricacao" class="form-label">Ano de Fabricação/Compatibilidade</label>
+                                <input type="text" class="form-control" id="ano_fabricacao" name="ano_fabricacao"
+                                    value="{{ product.year }}" placeholder="Ex: 2020-2024">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="compatibilidade" class="form-label">Compatibilidade com Veículos</label>
+                                <input type="text" class="form-control" id="compatibilidade" name="compatibilidade"
+                                    value="{{ product.compatibility }}" placeholder="Ex: Gol, Fox, Onix, Ka">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="especificacoes" class="form-label">Especificações Técnicas</label>
+                                <textarea class="form-control" id="especificacoes" name="especificacoes" rows="3"
+                                    placeholder="Detalhes técnicos do produto...">{{ product.specifications }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição do Produto *</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="3"
+                            placeholder="Descreva detalhadamente o produto..."
+                            required>{{ product.description }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('main.profile') }}" class="btn btn-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-warning">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('imagem').addEventListener('change', function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                let preview = document.getElementById('imagePreview');
+                if (!preview) {
+                    preview = document.createElement('img');
+                    preview.id = 'imagePreview';
+                    preview.className = 'img-fluid mt-2 rounded';
+                    preview.style.maxHeight = '200px';
+                    event.target.parentNode.appendChild(preview);
+                }
+                preview.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}

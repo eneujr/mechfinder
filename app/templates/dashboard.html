@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </h2>
+            <div class="btn-group">
+                <a href="{{ url_for('main.search') }}" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i> Buscar
+                </a>
+                {% if user.user_type in ['lojista', 'prestador'] %}
+                <a href="{{ url_for('products.cadastro_produto') }}" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i> Adicionar
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <p class="text-muted">Bem-vindo de volta, {{ user.username }}! Aqui está o resumo da sua conta.</p>
+    </div>
+</div>
+
+<!-- Cards de Estatísticas -->
+<div class="row mb-5">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">{{ dashboard_data.total_products }}</h5>
+                        <p class="card-text">Produtos/Serviços</p>
+                    </div>
+                    <div class="display-4">
+                        <i class="fas fa-box"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">{{ dashboard_data.total_sales }}</h5>
+                        <p class="card-text">
+                            {% if user.user_type in ['lojista', 'prestador'] %}Vendas{% else %}Compras{% endif %}
+                        </p>
+                    </div>
+                    <div class="display-4">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">R$ {{ "%.2f"|format(dashboard_data.total_revenue) }}</h5>
+                        <p class="card-text">
+                            {% if user.user_type in ['lojista', 'prestador'] %}Faturamento{% else %}Total Gasto{% endif
+                            %}
+                        </p>
+                    </div>
+                    <div class="display-4">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">{{ dashboard_data.total_stores }}</h5>
+                        <p class="card-text">Lojas/Cadastros</p>
+                    </div>
+                    <div class="display-4">
+                        <i class="fas fa-store"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ações Rápidas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-bolt me-2"></i>Ações Rápidas
+                </h5>
+                <div class="row">
+                    {% if user.user_type in ['lojista', 'prestador'] %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('products.cadastro_produto') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-box me-1"></i> Novo Produto
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('products.cadastro_servico') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-tools me-1"></i> Novo Serviço
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('main.minhas_vendas') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-chart-line me-1"></i> Ver Vendas
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('main.profile') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-cog me-1"></i> Configurações
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="col-md-4 mb-2">
+                        <a href="{{ url_for('main.search') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-search me-1"></i> Buscar
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <a href="{{ url_for('main.historico_compras') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-shopping-bag me-1"></i> Minhas Compras
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <a href="{{ url_for('main.profile') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-cog me-1"></i> Perfil
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Produtos/Serviços Recentes -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    {% if user.user_type in ['lojista', 'prestador'] %}Meus Produtos/Serviços{% else %}Produtos/Serviços
+                    Recomendados{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if products %}
+                <div class="row">
+                    {% for product in products %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title">{{ product.name }}</h6>
+                                    <span
+                                        class="badge {% if product.type == 'product' %}bg-primary{% else %}bg-success{% endif %}">
+                                        {{ 'Produto' if product.type == 'product' else 'Serviço' }}
+                                    </span>
+                                </div>
+                                <p class="card-text text-muted small">{{ product.description[:80] }}...</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong class="text-primary">R$ {{ "%.2f"|format(product.price) }}</strong>
+                                    <span class="text-warning">
+                                        <i class="fas fa-star"></i> {{ product.rating }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <a href="{{ url_for('products.product_detail', product_id=product.id) }}"
+                                    class="btn btn-sm btn-outline-primary w-100">
+                                    Ver Detalhes
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">Nenhum item para exibir.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Atividade Recente -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>
+                    {% if user.user_type in ['lojista', 'prestador'] %}Vendas Recentes{% else %}Compras Recentes{% endif
+                    %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_sales %}
+                <div class="list-group list-group-flush">
+                    {% for sale in recent_sales %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ sale.product.name }}</h6>
+                            <small class="text-muted">{{ sale.created_at.strftime('%d/%m') }}</small>
+                        </div>
+                        <p class="mb-1 small">R$ {{ "%.2f"|format(sale.total_price) }}</p>
+                        <small class="text-success">
+                            <i class="fas fa-check-circle me-1"></i>Concluído
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">Nenhuma atividade recente.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

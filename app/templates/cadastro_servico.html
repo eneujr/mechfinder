@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastro de Serviço - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-tools me-2"></i>Novo Serviço</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('products.cadastro_servico') }}" method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="nome_servico" class="form-label">Nome do Serviço *</label>
+                                <input type="text" class="form-control" id="nome_servico" name="nome_servico" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="categoria_servico" class="form-label">Categoria do Serviço *</label>
+                                <select class="form-select" id="categoria_servico" name="categoria_servico" required>
+                                    <option value="">Selecione uma categoria</option>
+                                    <option value="mecanica">Mecânica Geral</option>
+                                    <option value="funilaria">Funilaria e Pintura</option>
+                                    <option value="eletrica">Elétrica Automotiva</option>
+                                    <option value="estetica">Estética Automotiva</option>
+                                    <option value="geometria">Geometria e Balanceamento</option>
+                                    <option value="diagnostico">Diagnóstico Eletrônico</option>
+                                    <option value="socorro">Socorro Mecânico</option>
+                                    <option value="guincho">Guincho</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="preco_servico" class="form-label">Preço do Serviço (R$) *</label>
+                                <input type="number" class="form-control" id="preco_servico" name="preco_servico"
+                                    step="0.01" min="0" placeholder="0.00" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="garantia_servico" class="form-label">Garantia do Serviço</label>
+                                <input type="text" class="form-control" id="garantia_servico" name="garantia_servico"
+                                    placeholder="Ex: 90 dias, 6 meses">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="imagem" class="form-label">Imagem do Serviço</label>
+                                <input type="file" class="form-control" id="imagem" name="imagem" accept="image/*">
+                                <div class="form-text">Formatos aceitos: JPG, PNG, JPEG. Máx: 5MB.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="compatibilidade_servico" class="form-label">Compatibilidade com
+                                    Veículos</label>
+                                <input type="text" class="form-control" id="compatibilidade_servico"
+                                    name="compatibilidade_servico"
+                                    placeholder="Ex: Todos os veículos, apenas importados, etc.">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="diferenciais" class="form-label">Diferenciais</label>
+                                <textarea class="form-control" id="diferenciais" name="diferenciais" rows="3"
+                                    placeholder="Ex: Sala de espera climatizada, leva e traz, parcelamento..."></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="especificacoes_servico" class="form-label">Especificações do Serviço</label>
+                                <textarea class="form-control" id="especificacoes_servico" name="especificacoes_servico"
+                                    rows="2"
+                                    placeholder="Ex: Inclui mão de obra, peças originais, tempo de execução..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="descricao_servico" class="form-label">Descrição do Serviço *</label>
+                        <textarea class="form-control" id="descricao_servico" name="descricao_servico" rows="3"
+                            placeholder="Descreva detalhadamente o serviço oferecido..." required></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('main.profile') }}" class="btn btn-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-success">Cadastrar Serviço</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('imagem').addEventListener('change', function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                let preview = document.getElementById('imagePreview');
+                if (!preview) {
+                    preview = document.createElement('img');
+                    preview.id = 'imagePreview';
+                    preview.className = 'img-fluid mt-2 rounded';
+                    preview.style.maxHeight = '200px';
+                    // Insert after the file input's parent div (the .mb-3 div)
+                    event.target.parentNode.appendChild(preview);
+                }
+                preview.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}
