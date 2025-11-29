@@ -142,6 +142,20 @@
     let cameraStream = null;
     let capturedImageBlob = null;
 
+    // Verificar se está em HTTPS ou localhost
+    function isSecureContext() {
+        return window.isSecureContext ||
+            window.location.protocol === 'https:' ||
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1';
+    }
+
+    // Mostrar aviso se não estiver em HTTPS
+    if (!isSecureContext()) {
+        const cameraTab = document.getElementById('camera');
+        cameraTab.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i><strong>Câmera não disponível!</strong><br>A câmera só funciona em conexões seguras (HTTPS).<br><br><strong>Soluções:</strong><ul class="mb-0 mt-2"><li>Use a aba "Fazer Upload" para selecionar uma foto da galeria</li><li>Ou acesse via HTTPS (deploy no Render)</li></ul></div>';
+    }
+
     // Preview da imagem de upload
     document.getElementById('imageInput').addEventListener('change', function (e) {
         const file = e.target.files[0];
@@ -155,22 +169,61 @@
         }
     });
 
-    // Iniciar câmera
+    // Iniciar câmera com melhor suporte mobile
     document.getElementById('startCameraBtn').addEventListener('click', async function () {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' } // Usar câmera traseira em mobile
-            });
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('Seu navegador não suporta acesso à câmera');
+            }
 
-            cameraStream = stream;
+            let constraints = {
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            };
+
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (err) {
+                console.log('Tentando configuração alternativa...', err);
+                constraints = { video: true };
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+            }
+
             const video = document.getElementById('cameraStream');
-            video.srcObject = stream;
-            video.style.display = 'block';
+            video.srcObject = cameraStream;
 
-            document.getElementById('startCameraBtn').style.display = 'none';
-            document.getElementById('captureBtn').style.display = 'block';
+            video.onloadedmetadata = function () {
+                video.play();
+                video.style.display = 'block';
+                document.getElementById('startCameraBtn').style.display = 'none';
+                document.getElementById('captureBtn').style.display = 'block';
+            };
+
         } catch (error) {
-            alert('Erro ao acessar câmera: ' + error.message);
+            console.error('Erro ao acessar câmera:', error);
+
+            let errorMessage = 'Erro ao acessar câmera: ';
+
+            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                errorMessage += 'Permissão negada. Permita o acesso à câmera nas configurações do navegador.';
+            } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                errorMessage += 'Nenhuma câmera encontrada no dispositivo.';
+            } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                errorMessage += 'Câmera está sendo usada por outro aplicativo.';
+            } else if (!isSecureContext()) {
+                errorMessage += 'A câmera só funciona em HTTPS. Use a aba "Fazer Upload".';
+            } else {
+                errorMessage += error.message;
+            }
+
+            alert(errorMessage);
+
+            if (confirm('Deseja usar a opção de upload de arquivo ao invés?')) {
+                document.getElementById('upload-tab').click();
+            }
         }
     });
 
@@ -180,26 +233,28 @@
         const canvas = document.getElementById('photoCanvas');
         const context = canvas.getContext('2d');
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0);
+        canvas.width = video.videoWidth || video.clientWidth;
+        canvas.height = video.videoHeight || video.clientHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Converter para blob
         canvas.toBlob(function (blob) {
+            if (!blob) {
+                alert('Erro ao capturar foto. Tente novamente.');
+                return;
+            }
+
             capturedImageBlob = blob;
 
-            // Mostrar preview
             const img = document.getElementById('capturedPhoto');
             img.src = URL.createObjectURL(blob);
             img.style.display = 'block';
 
-            // Parar câmera
             if (cameraStream) {
                 cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
             }
             video.style.display = 'none';
 
-            // Mostrar botões
             document.getElementById('captureBtn').style.display = 'none';
             document.getElementById('retakeBtn').style.display = 'block';
             document.getElementById('searchCameraBtn').style.display = 'block';
@@ -210,45 +265,13 @@
     document.getElementById('retakeBtn').addEventListener('click', function () {
         document.getElementById('capturedPhoto').style.display = 'none';
         document.getElementById('retakeBtn').style.display = 'none';
-        document.getElementById('searchCameraBtn').style.display = 'none';
-        document.getElementById('startCameraBtn').style.display = 'block';
-        capturedImageBlob = null;
     });
 
-    // Buscar com foto da câmera
-    document.getElementById('searchCameraBtn').addEventListener('click', function () {
-        if (!capturedImageBlob) {
-            alert('Nenhuma foto capturada!');
-            return;
+    // Limpar stream ao sair da página
+    window.addEventListener('beforeunload', function () {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
         }
-
-        // Criar FormData e enviar
-        const formData = new FormData();
-        formData.append('image', capturedImageBlob, 'camera_photo.jpg');
-
-        document.getElementById('searchCameraBtn').disabled = true;
-        document.getElementById('loadingIndicator').style.display = 'block';
-
-        fetch('{{ url_for("image_search.upload_and_search") }}', {
-            method: 'POST',
-            body: formData
-        })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                }
-            })
-            .catch(error => {
-                alert('Erro ao processar imagem: ' + error.message);
-                document.getElementById('searchCameraBtn').disabled = false;
-                document.getElementById('loadingIndicator').style.display = 'none';
-            });
-    });
-
-    // Mostrar loading ao enviar formulário de upload
-    document.getElementById('imageSearchForm').addEventListener('submit', function () {
-        document.getElementById('searchBtn').disabled = true;
-        document.getElementById('loadingIndicator').style.display = 'block';
     });
 </script>
 {% endblock %}

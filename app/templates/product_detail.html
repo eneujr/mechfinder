@@ -4,6 +4,7 @@
 
 {% block content %}
 <div class="row">
+    <!-- Detalhes do Produto -->
     <div class="col-md-8">
         <div class="card shadow-sm mb-4">
             <div class="card-body">
@@ -56,6 +57,7 @@
         </div>
     </div>
 
+    <!-- Sidebar da Loja -->
     <div class="col-md-4">
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-light">
@@ -72,7 +74,7 @@
                 {% endif %}
 
                 {% if store.cep %}
-                <p class="mb-1">
+                <p class="mb-3">
                     <i class="fas fa-mail-bulk me-2 text-secondary"></i>
                     CEP: {{ store.cep }}
                 </p>
@@ -83,20 +85,40 @@
                 </p>
 
                 {% if store.latitude and store.longitude %}
+                <!-- Mapa Embutido -->
                 <div class="mb-3">
-                    <a href="https://www.google.com/maps/dir/?api=1&destination={{ store.latitude }},{{ store.longitude }}"
-                        target="_blank" class="btn btn-outline-info w-100">
-                        <i class="fas fa-directions me-2"></i>Como Chegar (Google Maps)
-                    </a>
+                    <h6 class="mb-2"><i class="fas fa-map-marked-alt me-2"></i>Localização</h6>
+                    <div id="map" style="width: 100%; height: 200px; border-radius: 8px; border: 1px solid #ddd;"></div>
+                    <div class="mt-2 small text-muted">
+                        <i class="fas fa-map-pin me-1"></i>
+                        Lat: {{ "%.6f"|format(store.latitude) }}, Long: {{ "%.6f"|format(store.longitude) }}
+                    </div>
+                </div>
+
+                <!-- Botão de Navegação Inteligente -->
+                <div class="mb-3">
+                    <button onclick="openNavigation({{ store.latitude }}, {{ store.longitude }})"
+                        class="btn btn-primary w-100">
+                        <i class="fas fa-directions me-2"></i>Como Chegar
+                    </button>
+                    <div id="distance-info" class="text-muted small mt-2 text-center" style="display: none;">
+                        <i class="fas fa-map-marker-distance me-1"></i>
+                        <span id="distance-text">Calculando distância...</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-3 small">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Localização não disponível
                 </div>
                 {% endif %}
 
                 <div class="d-grid gap-2">
                     {% if store.whatsapp %}
-                    <a href="https://wa.me/55{{ store.whatsapp.replace('(', '').replace(')', '').replace('-', '').replace(' ', '') }}?text=Olá!%20Tenho%20interesse%20no%20produto:%20{{ product.name|urlencode }}"
-                        target="_blank" class="btn btn-success">
+                    <button type="button" class="btn btn-success"
+                        onclick="openWhatsApp('{{ store.whatsapp }}', '{{ product.name }}', {{ product.id }}, {{ store.id }})">
                         <i class="fab fa-whatsapp me-2"></i>Contatar via WhatsApp
-                    </a>
+                    </button>
                     {% endif %}
                     {% if store.phone %}
                     <a href="tel:{{ store.phone }}" class="btn btn-outline-primary">
@@ -113,6 +135,7 @@
             </div>
         </div>
 
+        <!-- Card de Compra -->
         <div class="card shadow-sm">
             <div class="card-body">
                 <form id="purchaseForm" action="{{ url_for('cart.add_to_cart', product_id=product.id) }}" method="POST">
@@ -133,30 +156,245 @@
         </div>
     </div>
 </div>
+
+<!-- Modal WhatsApp Options -->
+<div class="modal fade" id="whatsappModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fab fa-whatsapp me-2"></i>Escolha como abrir</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-success btn-lg" id="whatsappDesktopBtn">
+                        <i class="fas fa-desktop me-2"></i>WhatsApp Desktop
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-lg" id="whatsappWebBtn">
+                        <i class="fas fa-globe me-2"></i>WhatsApp Web
+                    </button>
+                </div>
+                <div class="mt-3 small text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Desktop:</strong> Abre o aplicativo instalado<br>
+                    <strong>Web:</strong> Abre no navegador
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Retorno -->
+<div class="modal fade" id="returnModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-comment-dots me-2"></i>Como foi sua experiência?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Obrigado por entrar em contato com <strong id="returnStoreName">{{ store.name
+                        }}</strong>!</p>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Avaliação</label>
+                    <div class="d-flex justify-content-center gap-2 mb-2">
+                        {% for i in range(1, 6) %}
+                        <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating({{ i }})">
+                            <i class="fas fa-star"></i>
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" id="selectedRating" value="0">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Comentário</label>
+                    <textarea class="form-control" id="reviewComment" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="registerPurchase"
+                            onchange="togglePurchaseDetails()">
+                        <label class="form-check-label" for="registerPurchase"><strong>Efetuei a compra</strong></label>
+                    </div>
+                </div>
+
+                <div id="purchaseDetails" style="display: none;">
+                    <div class="mb-3">
+                        <label class="form-label">Quantidade</label>
+                        <input type="number" class="form-control" id="purchaseQuantity" value="1" min="1">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Agora Não</button>
+                <button type="button" class="btn btn-primary" onclick="submitReturn()">Enviar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
+    // Inicialização do Mapa
+    {% if store.latitude and store.longitude %}
+    document.addEventListener('DOMContentLoaded', function () {
+        const lat = Number("{{ store.latitude }}");
+        const lng = Number("{{ store.longitude }}");
+
+        const map = L.map('map').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        L.marker([lat, lng]).addTo(map)
+            .bindPopup('<b>{{ store.name }}</b><br>{{ store.address }}')
+            .openPopup();
+
+        // Calcular distância inicial se possível
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                updateDistance(position.coords.latitude, position.coords.longitude, lat, lng);
+            });
+        }
+    });
+    {% endif %}
+
+    // Navegação Inteligente
+    function openNavigation(lat, lng) {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        if (isMobile) {
+            if (isIOS) {
+                window.location.href = `maps://maps.apple.com/?daddr=${lat},${lng}`;
+                setTimeout(() => {
+                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+                }, 1500);
+            } else {
+                window.location.href = `google.navigation:q=${lat},${lng}`;
+                setTimeout(() => {
+                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+                }, 1500);
+            }
+        } else {
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+        }
+    }
+
+    function updateDistance(userLat, userLng, storeLat, storeLng) {
+        const R = 6371;
+        const dLat = (storeLat - userLat) * Math.PI / 180;
+        const dLon = (storeLng - userLng) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(userLat * Math.PI / 180) * Math.cos(storeLat * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const d = R * c;
+
+        const el = document.getElementById('distance-info');
+        const text = document.getElementById('distance-text');
+        if (el && text) {
+            el.style.display = 'block';
+            text.textContent = d < 1 ?
+                `A ${(d * 1000).toFixed(0)} metros de você` :
+                `A ${d.toFixed(1)} km de você`;
+        }
+    }
+
+    // WhatsApp Logic
+    function openWhatsApp(phone, productName, productId, storeId) {
+        const cleanPhone = '55' + phone.replace(/\D/g, '');
+        const message = encodeURIComponent(`Olá! Tenho interesse no produto: ${productName}`);
+
+        sessionStorage.setItem('whatsapp_context', JSON.stringify({
+            product_id: productId,
+            store_id: storeId,
+            opened_at: new Date().toISOString()
+        }));
+
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        if (isMobile) {
+            window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${message}`;
+            setTimeout(() => {
+                window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+            }, 2000);
+        } else {
+            showWhatsAppModal(cleanPhone, message);
+        }
+    }
+
+    function showWhatsAppModal(phone, message) {
+        const modal = new bootstrap.Modal(document.getElementById('whatsappModal'));
+        document.getElementById('whatsappDesktopBtn').onclick = () => {
+            window.location.href = `whatsapp://send?phone=${phone}&text=${message}`;
+            modal.hide();
+        };
+        document.getElementById('whatsappWebBtn').onclick = () => {
+            window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${message}`, '_blank');
+            modal.hide();
+        };
+        modal.show();
+    }
+
+    // Return Modal Logic
+    window.addEventListener('focus', function () {
+        const context = sessionStorage.getItem('whatsapp_context');
+        if (context) {
+            const data = JSON.parse(context);
+            const diff = (new Date() - new Date(data.opened_at)) / 1000;
+
+            if (diff > 5) {
+                new bootstrap.Modal(document.getElementById('returnModal')).show();
+                sessionStorage.removeItem('whatsapp_context');
+            }
+        }
+    });
+
+    function setRating(n) {
+        document.getElementById('selectedRating').value = n;
+        document.querySelectorAll('.rating-btn').forEach((btn, i) => {
+            btn.classList.toggle('btn-warning', i < n);
+            btn.classList.toggle('btn-outline-warning', i >= n);
+        });
+    }
+
+    function togglePurchaseDetails() {
+        const checked = document.getElementById('registerPurchase').checked;
+        document.getElementById('purchaseDetails').style.display = checked ? 'block' : 'none';
+    }
+
+    function submitReturn() {
+        const rating = document.getElementById('selectedRating').value;
+        if (rating == 0) {
+            alert('Por favor, avalie o atendimento.');
+            return;
+        }
+        // Mock submission
+        alert('Obrigado pelo feedback!');
+        bootstrap.Modal.getInstance(document.getElementById('returnModal')).hide();
+    }
+
     function quickPurchase() {
-        var quantity = document.getElementById('quantityInput').value;
-        var formData = new FormData();
-        formData.append('quantity', quantity);
+        const qty = document.getElementById('quantityInput').value;
+        const formData = new FormData();
+        formData.append('quantity', qty);
 
         fetch('{{ url_for("cart.add_to_cart", product_id=product.id) }}', {
             method: 'POST',
             body: formData
-        })
-            .then(function (response) {
-                if (response.ok) {
-                    window.location.href = '{{ url_for("cart.view_cart") }}';
-                } else {
-                    alert('Erro ao adicionar produto. Tente novamente.');
-                }
-            })
-            .catch(function (error) {
-                console.error('Erro:', error);
-                alert('Erro ao processar compra. Tente novamente.');
-            });
+        }).then(r => {
+            if (r.ok) window.location.href = '{{ url_for("cart.view_cart") }}';
+            else alert('Erro ao adicionar ao carrinho.');
+        });
     }
 </script>
 {% endblock %}

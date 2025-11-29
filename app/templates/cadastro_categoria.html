@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if category else 'Nova' }} Categoria - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-tag me-2"></i>{{ 'Editar' if category else 'Nova' }} Categoria
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label for="name" class="form-label text-gold">Nome da Categoria</label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                value="{{ category.name if category else '' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="type" class="form-label text-gold">Tipo</label>
+                            <select class="form-select bg-dark text-light border-secondary" id="type" name="type"
+                                required>
+                                <option value="product" {{ 'selected' if category and category.type=='product' else ''
+                                    }}>Produto</option>
+                                <option value="service" {{ 'selected' if category and category.type=='service' else ''
+                                    }}>Serviço</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label text-gold">Descrição</label>
+                        <textarea class="form-control" id="description" name="description"
+                            rows="3">{{ category.description if category else '' }}</textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="icon" class="form-label text-gold">Ícone (FontAwesome)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-gold">
+                                <i class="{{ category.icon if category else 'fas fa-tag' }}" id="iconPreview"></i>
+                            </span>
+                            <input type="text" class="form-control" id="icon" name="icon"
+                                value="{{ category.icon if category else 'fas fa-tag' }}" placeholder="ex: fas fa-cogs">
+                        </div>
+                        <div class="form-text text-muted">Use classes do FontAwesome 5 (ex: fas fa-car, fas fa-tools).
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('categories.index') }}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Salvar Categoria
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('icon').addEventListener('input', function () {
+        const iconClass = this.value || 'fas fa-tag';
+        document.getElementById('iconPreview').className = iconClass;
+    });
+</script>
+{% endblock %}

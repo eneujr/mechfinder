@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Perfil - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-edit me-2"></i>Editar Perfil
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.editar_perfil') }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">
+                                <i class="fas fa-user me-1"></i>Nome de Usuário
+                            </label>
+                            <input type="text" class="form-control" id="username" name="username"
+                                value="{{ current_user.username }}" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>E-mail
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                value="{{ current_user.email }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">
+                                <i class="fas fa-phone me-1"></i>Telefone
+                            </label>
+                            <input type="text" class="form-control" id="phone" name="phone"
+                                value="{{ current_user.phone or '' }}" placeholder="(00) 00000-0000">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="user_type" class="form-label">
+                                <i class="fas fa-id-card me-1"></i>Tipo de Usuário
+                            </label>
+                            <input type="text" class="form-control" id="user_type" value="{{ current_user.user_type }}"
+                                disabled>
+                            <small class="text-muted">Tipo de usuário não pode ser alterado</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="mb-3">
+                        <i class="fas fa-lock me-2"></i>Alterar Senha (Opcional)
+                    </h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="current_password" class="form-label">Senha Atual</label>
+                            <input type="password" class="form-control" id="current_password" name="current_password"
+                                placeholder="Digite sua senha atual">
+                            <small class="text-muted">Necessário para alterar a senha</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="new_password" class="form-label">Nova Senha</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password"
+                                placeholder="Digite a nova senha">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="confirm_password" class="form-label">Confirmar Nova Senha</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                                placeholder="Confirme a nova senha">
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('main.profile') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6 class="text-muted">
+                    <i class="fas fa-info-circle me-2"></i>Informações
+                </h6>
+                <ul class="mb-0">
+                    <li>Seu nome de usuário deve ser único</li>
+                    <li>O e-mail será usado para recuperação de senha</li>
+                    <li>Para alterar a senha, preencha todos os campos de senha</li>
+                    <li>Deixe os campos de senha em branco para manter a senha atual</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Máscara de telefone
+    document.getElementById('phone').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length <= 11) {
+            value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+            value = value.replace(/(\d)(\d{4})$/, '$1-$2');
+        }
+        e.target.value = value;
+    });
+
+    // Validação de senha
+    document.querySelector('form').addEventListener('submit', function (e) {
+        const currentPassword = document.getElementById('current_password').value;
+        const newPassword = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+
+        // Se algum campo de senha foi preenchido
+        if (currentPassword || newPassword || confirmPassword) {
+            // Todos devem estar preenchidos
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                e.preventDefault();
+                alert('Para alterar a senha, preencha todos os campos de senha');
+                return false;
+            }
+
+            // Nova senha deve ter no mínimo 6 caracteres
+            if (newPassword.length < 6) {
+                e.preventDefault();
+                alert('A nova senha deve ter no mínimo 6 caracteres');
+                return false;
+            }
+
+            // Senhas devem coincidir
+            if (newPassword !== confirmPassword) {
+                e.preventDefault();
+                alert('As senhas não coincidem');
+                return false;
+            }
+        }
+
+        return true;
+    });
+</script>
+{% endblock %}

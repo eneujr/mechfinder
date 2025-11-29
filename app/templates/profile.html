@@ -20,6 +20,14 @@
                     <p><i class="fas fa-phone me-2"></i> {{ user.phone or 'Não informado' }}</p>
                     <p><i class="fas fa-calendar me-2"></i> Membro desde {{ user.created_at.strftime('%d/%m/%Y') }}</p>
                 </div>
+
+                <hr>
+
+                <div class="d-grid">
+                    <a href="{{ url_for('main.editar_perfil') }}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>Editar Perfil
+                    </a>
+                </div>
             </div>
         </div>
     </div>

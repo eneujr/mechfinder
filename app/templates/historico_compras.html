@@ -118,6 +118,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Dados para os gráficos
@@ -127,16 +128,24 @@
 
     console.log('=== DEBUG GRÁFICOS ===');
     console.log('Total de compras:', comprasData.length);
-    console.log('Dados:', comprasData);
 
     if (comprasData.length === 0) {
         console.log('Nenhuma compra para exibir');
         return;
     }
 
+    // Configuração de cores do tema Steampunk
+    const themeColors = {
+        gold: '#d4af37',
+        copper: '#b87333',
+        bronze: '#cd7f32',
+        accent: '#ff4500',
+        text: '#e0e0e0',
+        grid: '#333'
+    };
+
     // ===== GRÁFICO DE BARRAS (PERÍODO) =====
     const ctxPeriodo = document.getElementById('gastosPorPeriodoChart');
-    console.log('Canvas período encontrado:', ctxPeriodo !== null);
 
     if (ctxPeriodo) {
         // Preparar dados dos últimos 7 dias
@@ -149,12 +158,10 @@
             dia.setDate(hoje.getDate() - i);
             dia.setHours(0, 0, 0, 0);
 
-            // Formatar label
             const diaStr = String(dia.getDate()).padStart(2, '0');
             const mesStr = String(dia.getMonth() + 1).padStart(2, '0');
             labels.push(`${diaStr}/${mesStr}`);
 
-            // Calcular total do dia
             let totalDia = 0;
             comprasData.forEach(compra => {
                 const dataCompra = new Date(compra.created_at);
@@ -168,10 +175,6 @@
             valores.push(totalDia);
         }
 
-        console.log('Labels período:', labels);
-        console.log('Valores período:', valores);
-
-        // Criar gráfico
         new Chart(ctxPeriodo, {
             type: 'bar',
             data: {
@@ -179,48 +182,39 @@
                 datasets: [{
                     label: 'Gastos (R$)',
                     data: valores,
-                    backgroundColor: 'rgba(26, 115, 232, 0.7)',
-                    borderColor: '#1a73e8',
-                    borderWidth: 2
+                    backgroundColor: 'rgba(212, 175, 55, 0.6)', // Gold semitransparente
+                    borderColor: themeColors.gold,
+                    borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: true
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                return 'R$ ' + context.parsed.y.toFixed(2);
-                            }
-                        }
-                    }
+                    legend: { labels: { color: themeColors.text } }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: { color: themeColors.grid },
                         ticks: {
-                            callback: function (value) {
-                                return 'R$ ' + value.toFixed(0);
-                            }
+                            color: themeColors.text,
+                            callback: function (value) { return 'R$ ' + value.toFixed(0); }
                         }
+                    },
+                    x: {
+                        grid: { color: themeColors.grid },
+                        ticks: { color: themeColors.text }
                     }
                 }
             }
         });
-
-        console.log('✓ Gráfico de período criado');
     }
 
     // ===== GRÁFICO DE PIZZA (CATEGORIAS) =====
     const ctxCategorias = document.getElementById('gastosPorCategoriaChart');
-    console.log('Canvas categorias encontrado:', ctxCategorias !== null);
 
     if (ctxCategorias) {
-        // Agrupar por categoria
         const categorias = {};
         comprasData.forEach(compra => {
             const cat = compra.product.category || 'Outros';
@@ -230,10 +224,6 @@
         const labels = Object.keys(categorias);
         const valores = Object.values(categorias);
 
-        console.log('Labels categorias:', labels);
-        console.log('Valores categorias:', valores);
-
-        // Criar gráfico
         new Chart(ctxCategorias, {
             type: 'pie',
             data: {
@@ -241,14 +231,15 @@
                 datasets: [{
                     data: valores,
                     backgroundColor: [
-                        '#1a73e8',
-                        '#0f9d58',
-                        '#f4b400',
-                        '#db4437',
-                        '#ab47bc',
-                        '#00acc1',
-                        '#ff6f00'
-                    ]
+                        themeColors.gold,
+                        themeColors.copper,
+                        themeColors.bronze,
+                        themeColors.accent,
+                        '#8b4513', // Marrom couro
+                        '#2f4f4f'  // Slate gray
+                    ],
+                    borderWidth: 1,
+                    borderColor: '#121212'
                 }]
             },
             options: {
@@ -257,29 +248,12 @@
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: {
-                            boxWidth: 12,
-                            padding: 8,
-                            font: { size: 10 }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                const total = valores.reduce((a, b) => a + b, 0);
-                                const pct = ((context.parsed / total) * 100).toFixed(1);
-                                return context.label + ': R$ ' + context.parsed.toFixed(2) + ' (' + pct + '%)';
-                            }
-                        }
+                        labels: { color: themeColors.text }
                     }
                 }
             }
         });
-
-        console.log('✓ Gráfico de categorias criado');
     }
-
-    console.log('=== FIM DEBUG ===');
-});
+    });
 </script>
 {% endblock %}

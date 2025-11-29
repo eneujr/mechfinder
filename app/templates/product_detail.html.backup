@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - MechFinder{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h2 class="card-title">{{ product.name }}</h2>
+                    <span
+                        class="badge {% if product.type == 'product' %}bg-primary{% else %}bg-success{% endif %} fs-6">
+                        {{ 'Produto' if product.type == 'product' else 'Serviço' }}
+                    </span>
+                </div>
+
+                <div class="mb-3">
+                    <span class="text-warning fs-5">
+                        <i class="fas fa-star"></i> {{ product.rating }}
+                    </span>
+                    <span class="text-muted ms-2">({{ product.category }})</span>
+                </div>
+
+                <h3 class="text-primary mb-4">R$ {{ "%.2f"|format(product.price) }}</h3>
+
+                {% if product.image_file and product.image_file != 'default_product.jpg' %}
+                <div class="mb-4 text-center">
+                    <img src="{{ url_for('static', filename='uploads/' + product.image_file) }}"
+                        alt="{{ product.name }}" class="img-fluid rounded" style="max-height: 400px;">
+                </div>
+                {% endif %}
+
+                <h5>Descrição</h5>
+                <p class="text-muted">{{ product.description }}</p>
+
+                {% if product.specifications %}
+                <h5 class="mt-4">Especificações</h5>
+                <p class="text-muted">{{ product.specifications }}</p>
+                {% endif %}
+
+                {% if product.compatibility %}
+                <h5 class="mt-4">Compatibilidade</h5>
+                <p class="text-muted">{{ product.compatibility }}</p>
+                {% endif %}
+
+                {% if product.type == 'service' and product.diferenciais %}
+                <h5 class="mt-4">Diferenciais</h5>
+                <ul class="text-muted">
+                    {% for dif in product.diferenciais.split('\n') %}
+                    <li>{{ dif }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-store me-2"></i>Vendido por</h5>
+            </div>
+            <div class="card-body">
+                <h4>{{ store.name }}</h4>
+
+                {% if store.address %}
+                <p class="mb-1">
+                    <i class="fas fa-map-marker-alt me-2 text-danger"></i>
+                    {{ store.address }}{% if store.number %}, {{ store.number }}{% endif %}
+                </p>
+                {% endif %}
+
+                {% if store.cep %}
+                <p class="mb-3">
+                    <i class="fas fa-mail-bulk me-2 text-secondary"></i>
+                    CEP: {{ store.cep }}
+                </p>
+                {% endif %}
+
+                <p class="mb-3">
+                    <i class="fas fa-star text-warning me-2"></i>{{ store.rating }}
+                </p>
+
+                {% if store.latitude and store.longitude %}
+                <!-- Mapa Embutido -->
+                <div class="mb-3">
+                    <h6 class="mb-2"><i class="fas fa-map-marked-alt me-2"></i>Localização</h6>
+                    <div id="map" style="width: 100%; height: 200px; border-radius: 8px; border: 1px solid #ddd;"></div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        {% if store.whatsapp %}
+                        <button type="button" class="btn btn-success"
+                            onclick="openWhatsApp('{{ store.whatsapp }}', '{{ product.name }}', {{ product.id }}, {{ store.id }})">
+                            <i class="fab fa-whatsapp me-2"></i>Contatar via WhatsApp
+                        </button>
+                        {% endif %}
+                        {% if store.phone %}
+                        <a href="tel:{{ store.phone }}" class="btn btn-outline-primary">
+                            <i class="fas fa-phone me-2"></i>Ligar: {{ store.phone }}
+                        </a>
+                        {% endif %}
+                        {% if store.email %}
+                        <a href="mailto:{{ store.email }}?subject=Interesse%20em%20{{ product.name|urlencode }}"
+                            class="btn btn-outline-secondary">
+                            <i class="fas fa-envelope me-2"></i>Enviar E-mail
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form id="purchaseForm" action="{{ url_for('cart.add_to_cart', product_id=product.id) }}"
+                        method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Quantidade</label>
+                            <input type="number" id="quantityInput" name="quantity" value="1" min="1"
+                                class="form-control">
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary btn-lg" onclick="quickPurchase()">
+                                <i class="fas fa-bolt me-2"></i>Comprar Agora (Rápido)
+                            </button>
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="fas fa-cart-plus me-2"></i>Adicionar ao Carrinho
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal WhatsApp Options -->
+    <div class="modal fade" id="whatsappModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fab fa-whatsapp me-2"></i>Escolha como abrir
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-success btn-lg" id="whatsappDesktopBtn">
+                            <i class="fas fa-desktop me-2"></i>WhatsApp Desktop
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-lg" id="whatsappWebBtn">
+                            <i class="fas fa-globe me-2"></i>WhatsApp Web
+                        </button>
+                    </div>
+                    <div class="mt-3 small text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Desktop:</strong> Abre o aplicativo instalado no computador<br>
+                        <strong>Web:</strong> Abre no navegador
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Retorno do WhatsApp -->
+    <div class="modal fade" id="returnModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-comment-dots me-2"></i>Como foi sua experiência?
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Obrigado por entrar em contato com <strong id="returnStoreName">{{ store.name
+                            }}</strong>!</p>
+
+                    <!-- Avaliação -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Como você avalia o atendimento?</label>
+                        <div class="d-flex justify-content-center gap-2 mb-2">
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(1)">
+                                <i class="fas fa-star"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(2)">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(3)">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(4)">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i
+                                    class="fas fa-star"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(5)">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i
+                                    class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" id="selectedRating" value="0">
+                    </div>
+
+                    <!-- Comentário -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Comentário (opcional)</label>
+                        <textarea class="form-control" id="reviewComment" rows="3"
+                            placeholder="Conte-nos sobre sua experiência..."></textarea>
+                    </div>
+
+                    <!-- Registrar Compra -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="registerPurchase"
+                                onchange="togglePurchaseDetails()">
+                            <label class="form-check-label" for="registerPurchase">
+                                <strong>Efetuei a compra deste produto</strong>
+                            </label>
+                        </div>
+                        <small class="text-muted">Marque se você comprou o produto durante a conversa</small>
+                    </div>
+
+                    <!-- Quantidade (se comprou) -->
+                    <div id="purchaseDetails" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Quantidade comprada</label>
+                            <input type="number" class="form-control" id="purchaseQuantity" value="1" min="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Agora Não
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="submitReturn()">
+                        <i class="fas fa-check me-2"></i>Enviar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal WhatsApp Options -->
+    <div class="modal fade" id="whatsappModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fab fa-whatsapp me-2"></i>Escolha como abrir
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-success btn-lg" id="whatsappDesktopBtn">
+                            <i class="fas fa-desktop me-2"></i>WhatsApp Desktop
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-lg" id="whatsappWebBtn">
+                            <i class="fas fa-globe me-2"></i>WhatsApp Web
+                        </button>
+                    </div>
+                    <div class="mt-3 small text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Desktop:</strong> Abre o aplicativo instalado no computador<br>
+                        <strong>Web:</strong> Abre no navegador
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Retorno do WhatsApp -->
+    <div class="modal fade" id="returnModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-comment-dots me-2"></i>Como foi sua experiência?
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Obrigado por entrar em contato com <strong id="returnStoreName">{{ store.name
+                            }}</strong>!</p>
+
+                    <!-- Avaliação -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Como você avalia o atendimento?</label>
+                        <div class="d-flex justify-content-center gap-2 mb-2">
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(1)">
+                                <i class="fas fa-star"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(2)">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(3)">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(4)">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i
+                                    class="fas fa-star"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-warning rating-btn" onclick="setRating(5)">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i
+                                    class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" id="selectedRating" value="0">
+                    </div>
+
+                    <!-- Comentário -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Comentário (opcional)</label>
+                        <textarea class="form-control" id="reviewComment" rows="3"
+                            placeholder="Conte-nos sobre sua experiência..."></textarea>
+                    </div>
+
+                    <!-- Registrar Compra -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="registerPurchase"
+                                onchange="togglePurchaseDetails()">
+                            <label class="form-check-label" for="registerPurchase">
+                                <strong>Efetuei a compra deste produto</strong>
+                            </label>
+                        </div>
+                        <small class="text-muted">Marque se você comprou o produto durante a conversa</small>
+                    </div>
+
+                    <!-- Quantidade (se comprou) -->
+                    <div id="purchaseDetails" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Quantidade comprada</label>
+                            <input type="number" class="form-control" id="purchaseQuantity" value="1" min="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Agora Não
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="submitReturn()">
+                        <i class="fas fa-check me-2"></i>Enviar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block scripts %}
+    <!-- Leaflet CSS e JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Inicializar mapa se houver coordenadas
+        {% if store.latitude and store.longitude %}
+        document.addEventListener('DOMContentLoaded', function () {
+            const lat = Number("{{ store.latitude }}");
+            const lng = Number("{{ store.longitude }}");
+
+            // Criar mapa
+            const map = L.map('map').setView([lat, lng], 15);
+
+            // Adicionar camada de tiles (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Adicionar marcador
+            const marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup('<b>{{ store.name }}</b><br>{{ store.address }}').openPopup();
+        });
+        {% endif %}
+
+        // Função para abrir WhatsApp (MELHORADO)
+        function openWhatsApp(phone, productName, productId, storeId) {
+            // Limpar telefone
+            const cleanPhone = phone.replace(/\D/g, '');
+            const fullPhone = '55' + cleanPhone;
+
+            // Mensagem
+            const message = encodeURIComponent(`Olá! Tenho interesse no produto: ${productName}`);
+
+            // Salvar contexto para retorno
+            sessionStorage.setItem('whatsapp_context', JSON.stringify({
+                product_id: productId,
+                store_id: storeId,
+                product_name: productName,
+                opened_at: new Date().toISOString()
+            }));
+
+            // Detectar se é mobile
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                // Mobile: Tentar abrir app, fallback para web
+                const appUrl = `whatsapp://send?phone=${fullPhone}&text=${message}`;
+                const webUrl = `https://wa.me/${fullPhone}?text=${message}`;
+
+                // Tentar abrir app
+                window.location.href = appUrl;
+
+                // Fallback para web após 2 segundos
+                setTimeout(function () {
+                    window.open(webUrl, '_blank');
+                }, 2000);
+
+            } else {
+                // Desktop: Mostrar modal com opções
+                showWhatsAppModal(fullPhone, message);
+            }
+        }
+
+        // Mostrar modal de opções (Desktop)
+        function showWhatsAppModal(phone, message) {
+            const modal = new bootstrap.Modal(document.getElementById('whatsappModal'));
+
+            // WhatsApp Desktop
+            document.getElementById('whatsappDesktopBtn').onclick = function () {
+                window.location.href = `whatsapp://send?phone=${phone}&text=${message}`;
+                modal.hide();
+            };
+
+            // WhatsApp Web
+            document.getElementById('whatsappWebBtn').onclick = function () {
+                window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${message}`, '_blank');
+                modal.hide();
+            };
+
+            modal.show();
+        }
+
+        // Detectar retorno do WhatsApp
+        window.addEventListener('focus', function () {
+            const context = sessionStorage.getItem('whatsapp_context');
+
+            if (context) {
+                const data = JSON.parse(context);
+                const openedAt = new Date(data.opened_at);
+                const now = new Date();
+                const diffMinutes = (now - openedAt) / 1000 / 60;
+
+                // Se passou mais de 5 segundos (para teste)
+                const diffSeconds = (now - openedAt) / 1000;
+
+                if (diffSeconds > 5) {
+                    // Mostrar modal de retorno
+                    const returnModal = new bootstrap.Modal(document.getElementById('returnModal'));
+                    returnModal.show();
+
+                    // Limpar contexto para não mostrar novamente
+                    sessionStorage.removeItem('whatsapp_context');
+                }
+            }
+        });
+
+        // Lógica do Modal de Retorno
+        function setRating(rating) {
+            document.getElementById('selectedRating').value = rating;
+
+            // Atualizar visual das estrelas
+            const buttons = document.querySelectorAll('.rating-btn');
+            buttons.forEach((btn, index) => {
+                if (index < rating) {
+                    btn.classList.remove('btn-outline-warning');
+                    btn.classList.add('btn-warning');
+                } else {
+                    btn.classList.remove('btn-warning');
+                    btn.classList.add('btn-outline-warning');
+                }
+            });
+        }
+
+        function togglePurchaseDetails() {
+            const isChecked = document.getElementById('registerPurchase').checked;
+            document.getElementById('purchaseDetails').style.display = isChecked ? 'block' : 'none';
+        }
+
+        function submitReturn() {
+            const rating = document.getElementById('selectedRating').value;
+            const comment = document.getElementById('reviewComment').value;
+            const purchased = document.getElementById('registerPurchase').checked;
+            const quantity = document.getElementById('purchaseQuantity').value;
+
+            if (rating == 0) {
+                alert('Por favor, selecione uma avaliação de 1 a 5 estrelas.');
+                return;
+            }
+
+            // Aqui enviaria para o backend via fetch
+            // Por enquanto, apenas simula e fecha
+            alert('Obrigado pelo seu feedback! ' + (purchased ? 'Sua compra foi registrada.' : ''));
+
+            const returnModal = bootstrap.Modal.getInstance(document.getElementById('returnModal'));
+            returnModal.hide();
+        }
+
+        // Compra rápida
+        function quickPurchase() {
+            var quantity = document.getElementById('quantityInput').value;
+            var formData = new FormData();
+            formData.append('quantity', quantity);
+
+            fetch('{{ url_for("cart.add_to_cart", product_id=product.id) }}', {
+                method: 'POST',
+                body: formData
+            })
+                .then(function (response) {
+                    if (response.ok) {
+                        window.location.href = '{{ url_for("cart.view_cart") }}';
+                    } else {
+                        alert('Erro ao adicionar produto. Tente novamente.');
+                    }
+                })
+                .catch(function (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao processar compra. Tente novamente.');
+                });
+        }
+    </script>
+    {% endblock %}
