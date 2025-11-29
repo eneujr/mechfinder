@@ -104,3 +104,11 @@ class ProductFeatures(db.Model):
     
     # Relacionamento
     product = db.relationship('Product', backref=db.backref('features_cache', uselist=False))
+
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    type = db.Column(db.String(20), nullable=False) # 'product' ou 'service'
+    description = db.Column(db.String(200))
+    icon = db.Column(db.String(50), default='fas fa-tag') # Ícone FontAwesome
+    is_active = db.Column(db.Boolean, default=True)

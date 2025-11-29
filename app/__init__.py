@@ -33,6 +33,9 @@ def create_app(config_class=Config):
     app.register_blueprint(cart_bp)
     app.register_blueprint(stores_bp)
     app.register_blueprint(image_search_bp)
+    
+    from app.routes.categories import categories
+    app.register_blueprint(categories)
 
     with app.app_context():
         db.create_all()
